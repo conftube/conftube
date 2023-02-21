@@ -1,54 +1,7 @@
-import express, { Express, Request, Response } from 'express';
+import express, {Express} from 'express';
 import dotenv from 'dotenv';
-import { buildSchema } from 'graphql';
-import { graphqlHTTP } from 'express-graphql';
-
-const videos = [
-  {
-    title: "How not to learn GraphQL",
-    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  },
-  {
-    title: "Just another video",
-    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  },
-];
-
-const schema = buildSchema(`
-    type User {
-        name: String,
-        email: String,
-        password: String,
-    },
-
-    type Video {
-        title: String,
-        description: String,
-        owner: String,
-        url: String,
-        uploaded_at: String
-        uploader: User
-    }
-
-    type Rating {
-        user: User,
-        video: Video
-    }
-
-    type Query {
-        videos: [Video],
-        searchVideos(title: String): [Video]
-    }
-`);
-
-const root = {
-    videos: () => {
-        return videos;
-    },
-    searchVideos: ({ title }) => {
-        return videos.filter(e => e.title == title);
-    }
-}
+import {graphqlHTTP} from 'express-graphql';
+import {root, schema} from "./GraphRoot";
 
 dotenv.config();
 
