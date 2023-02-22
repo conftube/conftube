@@ -5,9 +5,10 @@ import Content from "./components/Content";
 function App() {
   return (
     <div className="App">
-      <header className="header">ConfTube</header>
-      <Search />
-      <Content />
+      <header className="App-header">
+        <Search />
+        <Content />
+      </header>
     </div>
   );
 }

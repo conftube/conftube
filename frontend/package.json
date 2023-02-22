@@ -1,6 +1,7 @@
 {
-  "name": "conftube-frontend",
-  "version": "1.0.0",
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
@@ -38,19 +39,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/conftube/conftube.git"
-  },
-  "keywords": [
-    "conference",
-    "talks"
-  ],
-  "author": "Johanna Liebler, Dominik Liebler",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/conftube/conftube/issues"
-  },
-  "homepage": "https://github.com/conftube/conftube#readme"
+  }
 }
