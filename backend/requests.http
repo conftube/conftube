@@ -1,0 +1,38 @@
+### search videos
+GRAPHQL http://localhost:8080/graphql
+
+query {
+    searchVideos(query: "Rust") {
+        id
+        platform
+        title
+        description
+        thumbnailUrl
+        publishedAt
+    }
+}
+
+
+### add Video from YT
+GRAPHQL http://localhost:8080/graphql
+
+mutation {
+    addVideo(input: {id: "DEE1GKMbtgw", platform: "youtube"}) {
+        id
+        title
+        description
+        publishedAt
+    }
+}
+
+### invalid Video ID
+GRAPHQL http://localhost:8080/graphql
+
+mutation {
+    addVideo(input: {id: "abc", platform: "youtube"}) {
+        id
+        title
+        description
+        publishedAt
+    }
+}

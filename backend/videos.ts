@@ -1,57 +1,52 @@
-import {searchOnYoutube} from "./youtube";
-import {PrismaClient} from "@prisma/client";
+import {findById, searchOnYoutube, YoutubeVideo} from "./youtube";
+import {PrismaClient, Video} from "@prisma/client";
+import {GraphQLError} from "graphql";
 
 const prisma = new PrismaClient();
 
-type SearchVideoResult = {
-    id: string,
-    title: string,
-    description: string,
-    publishedAt: string,
-    platform: string
-}
-
 export type SearchVideoParams = {
-    title: string,
+    query: string,
     maxResults?: number
 }
 
-export async function searchVideos(params: SearchVideoParams): Promise<Array<SearchVideoResult>> {
+export async function searchVideos(params: SearchVideoParams): Promise<Array<Video|YoutubeVideo>> {
     const maxResults = params.maxResults ?? 20;
-    const youtubeSearch = searchOnYoutube(params.title, maxResults);
+    const youtubeSearch = searchOnYoutube(params.query, maxResults);
 
-    const internal: Array<SearchVideoResult> = (await prisma.video.findMany({
-        take: maxResults,
+    const internal: Array<Video> = await prisma.$queryRaw`SELECT * FROM "Video" WHERE "Video".title LIKE '%${params.query}%' LIMIT ${maxResults}`;
+    const external: Array<YoutubeVideo> = (await youtubeSearch) ?? [];
+
+    return [...internal, ...external].slice(0, maxResults)
+}
+
+export type AddVideoInput = {
+    id: string,
+    platform: string
+}
+
+export async function addVideo(input: AddVideoInput): Promise<Video|GraphQLError> {
+    const video = await findById(input.id);
+
+    if (video === null) {
+        return new GraphQLError(`Could not find video with ID ${input.id}`)
+    }
+
+    return prisma.video.upsert({
         where: {
-            title: {
-                search: params.title
-            }
+            id: video?.id,
         },
-        orderBy: {
-            publishedAt: 'desc'
+        update: {
+            description: video?.description,
+            title: video?.title,
+            thumbnailUrl: video?.thumbnailUrl,
         },
-        include: {
-            owner: true
-        }
-    })).map(e => {
-        return {
-            id: e.id,
-            platform: e.platform,
-            title: e.title,
-            description: e.description,
-            publishedAt: e.publishedAt.toString()
-        }
-    });
-
-    const external: Array<SearchVideoResult> = ((await youtubeSearch) ?? []).map(e => {
-        return {
-            id: e.id!!.videoId!!,
+        create: {
+            id: video?.id,
+            description: video?.description,
             platform: 'youtube',
-            title: e.snippet!!.title!!,
-            description: e.snippet!!.description!!,
-            publishedAt: e.snippet!!.publishedAt!!
+            title: video?.title,
+            thumbnailUrl: video?.thumbnailUrl,
+            publishedAt: video?.publishedAt
         }
     });
-
-    return internal.concat(external).slice(0, maxResults)
 }

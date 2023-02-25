@@ -1,25 +1,38 @@
 import {buildSchema} from "graphql";
-import {searchVideos} from "./videos";
+import {addVideo, searchVideos, AddVideoInput} from "./videos";
 
 export const schema = buildSchema(`
     type User {
         id: String
         email: String
     }
-
-    type VideoSearchResult {
+    
+    type Video {
         id: ID!
-        platform: String # could be either 'youtube' or anything else really
+        platform: String
         title: String
         description: String
+        thumbnailUrl: String
         publishedAt: String
     }
     
     type Query {
-        searchVideos(title: String): [VideoSearchResult]
+        searchVideos(query: String): [Video]
+    }
+    
+    input AddVideoInput {
+        id: ID!
+        platform: String
+    }
+    
+    type Mutation {
+        addVideo(input: AddVideoInput): Video
     }
 `);
 
 export const root = {
-    searchVideos: searchVideos
+    searchVideos: searchVideos,
+    addVideo: ({input}: { input: AddVideoInput }) => {
+        return addVideo(input)
+    },
 }
