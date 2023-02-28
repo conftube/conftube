@@ -4,6 +4,35 @@ import {GraphQLError} from "graphql";
 
 const prisma = new PrismaClient();
 
+export type PaginatedVideosParams = {
+    id: string,
+    first: number,
+    offset: number
+}
+
+export async function videos(params: PaginatedVideosParams) {
+    const offset = params.offset ?? 0;
+    const first = params.first ?? 25;
+
+    const filters = {
+        id: params.id,
+    }
+
+    const total = await prisma.video.count();
+    const results = await prisma.video.findMany({
+        skip: offset,
+        take: first,
+        where: filters
+    });
+
+    return {
+        first,
+        offset,
+        total,
+        results
+    }
+}
+
 export type SearchVideoParams = {
     query: string,
     maxResults?: number

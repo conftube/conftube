@@ -1,5 +1,5 @@
 import {buildSchema} from "graphql";
-import {addVideo, searchVideos, AddVideoInput} from "./videos";
+import {addVideo, searchVideos, AddVideoInput, videos} from "./videos";
 
 export const schema = buildSchema(`
     type User {
@@ -16,7 +16,15 @@ export const schema = buildSchema(`
         publishedAt: String
     }
     
+    type PaginatedVideos {
+        first: Int
+        offset: Int
+        total: Int
+        results: [Video]
+    }
+
     type Query {
+        videos(id: ID, first: Int, offset: Int): PaginatedVideos
         searchVideos(query: String): [Video]
     }
     
@@ -32,6 +40,7 @@ export const schema = buildSchema(`
 
 export const root = {
     searchVideos: searchVideos,
+    videos: videos,
     addVideo: ({input}: { input: AddVideoInput }) => {
         return addVideo(input)
     },
