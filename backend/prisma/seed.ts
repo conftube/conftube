@@ -7,6 +7,9 @@ async function main() {
         update: {},
         create: {
             email: 'test@example.com',
+            givenName: 'Test',
+            familyName: 'Example',
+            picture: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdXF9CU0PeppjYjQkOuY-o4z3JBwMWM3fPcg&usqp=CAU'
         },
     })
 

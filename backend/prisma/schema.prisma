@@ -14,6 +14,9 @@ datasource db {
 model User {
   id Int @id @default(autoincrement())
   email String @unique
+  givenName String
+  familyName String
+  picture String
 }
 
 model Video {
