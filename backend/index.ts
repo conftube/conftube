@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import {graphqlHTTP} from 'express-graphql';
 import {resolvers, schema} from "./GraphRoot";
 import {auth, ConfigParams, requiresAuth} from 'express-openid-connect';
+import path from "path";
 
 dotenv.config();
 
@@ -31,7 +32,7 @@ const config: ConfigParams = {
 };
 
 app.use(auth(config)); // auth router attaches /login, /logout, and /callback routes to the baseURL
-
+app.use(express.static(path.normalize(__dirname + '/../../frontend/build')));
 app.use('/graphql', requiresAuth(), graphqlHTTP(async  (req) => ({
     schema,
     rootValue: resolvers,
@@ -41,6 +42,10 @@ app.use('/graphql', requiresAuth(), graphqlHTTP(async  (req) => ({
         user: req.oidc.user
     }
 })));
+
+app.get('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 
 app.listen(port, hostname, () => {
     console.log(`Server is now running on ${hostname}:${port}`);
