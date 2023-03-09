@@ -32,7 +32,7 @@ const config: ConfigParams = {
 };
 
 app.use(auth(config)); // auth router attaches /login, /logout, and /callback routes to the baseURL
-app.use(express.static(path.normalize(__dirname + '/../../frontend/build')));
+app.use(express.static(path.normalize(__dirname + '/public')));
 app.use('/graphql', requiresAuth(), graphqlHTTP(async  (req) => ({
     schema,
     rootValue: resolvers,
