@@ -2,20 +2,20 @@ import "./App.css";
 import { useQuery, gql } from "@apollo/client";
 
 export default function App() {
-  const GET_SEARCHVIDEO = gql`
-    query GetSearchVideo {
-      searchVideos("JavaScript") {
-        title
-        description
-        platform
-        thumbnailUrl
-        id
-        publishedAt
+  function DisplayVideo(): any {
+    const GET_SEARCHVIDEO = gql`
+      query GetSearchVideo {
+        searchVideos(query: "JavaScript") {
+          title
+          description
+          platform
+          thumbnailUrl
+          id
+          publishedAt
+        }
       }
-    }
-  `;
+    `;
 
-  function DisplayVideo() {
     const { loading, error, data } = useQuery(GET_SEARCHVIDEO);
     console.log(data);
 
@@ -52,7 +52,7 @@ export default function App() {
   }
 
   return (
-    <div>
+    <div className="App-header">
       <h2>My first Apollo app 🚀</h2>
       <DisplayVideo />
     </div>
