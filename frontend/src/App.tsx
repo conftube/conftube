@@ -1,8 +1,9 @@
 import "./App.css";
 import { useQuery, gql } from "@apollo/client";
+import {ReactElement} from "react";
 
 export default function App() {
-  function DisplayVideo(): any {
+  function DisplayVideo(): ReactElement | null {
     const GET_SEARCHVIDEO = gql`
       query GetSearchVideo {
         searchVideos(query: "JavaScript") {
@@ -17,12 +18,12 @@ export default function App() {
     `;
 
     const { loading, error, data } = useQuery(GET_SEARCHVIDEO);
-    console.log(data);
+    console.log({data});
 
     if (loading) return <p>Loading...</p>;
     if (error) return <p>Error : {error.message}</p>;
 
-    return data.map(
+    return data ? data.searchVideos.map(
       ({
         title,
         description,
@@ -48,7 +49,7 @@ export default function App() {
           <br />
         </div>
       )
-    );
+    ) : null;
   }
 
   return (
