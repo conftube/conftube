@@ -1,6 +1,8 @@
 import {findById, searchOnYoutube, YoutubeVideo} from "./youtube";
 import {PrismaClient, Video} from "@prisma/client";
 import {GraphQLError} from "graphql";
+import {Context} from "./index";
+import {Videos} from "./repository/video";
 
 const prisma = new PrismaClient();
 
@@ -78,4 +80,25 @@ export async function addVideo(input: AddVideoInput): Promise<Video|GraphQLError
             publishedAt: video?.publishedAt
         }
     });
+}
+
+export type RateVideoInput = {
+    id: string,
+    rating: number
+}
+
+export async function rateVideo(input: RateVideoInput, context: Context): Promise<Video | null | GraphQLError> {
+    const user = await prisma.user.findFirst({ where: { email: context.user.email }});
+
+    if (user === null) {
+        return new GraphQLError(`Could not find user`)
+    }
+
+    const video = await Videos.findById(input.id);
+
+    if (video === null) {
+        return new GraphQLError(`Could not find video with ID ${input.id}`)
+    }
+
+    return Videos.rate(video, user, input.rating);
 }

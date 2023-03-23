@@ -1,6 +1,7 @@
-import { buildSchema } from "graphql";
-import { addVideo, searchVideos, AddVideoInput, videos } from "./videos";
-import { profile } from "./user";
+import {buildSchema} from "graphql";
+import {addVideo, searchVideos, AddVideoInput, videos, RateVideoInput, rateVideo} from "./videos";
+import {profile} from "./user";
+import {Context} from "./index";
 
 export const schema = buildSchema(`
     type User {
@@ -18,6 +19,7 @@ export const schema = buildSchema(`
         description: String
         thumbnailUrl: String
         publishedAt: String
+        rating: Float
     }
     
     type PaginatedVideos {
@@ -38,16 +40,25 @@ export const schema = buildSchema(`
         platform: String
     }
     
+    input RateVideoInput {
+        id: ID!
+        rating: Float
+    }
+
     type Mutation {
         addVideo(input: AddVideoInput): Video
+        rateVideo(input: RateVideoInput): Video
     }
 `);
 
 export const resolvers = {
-  searchVideos: searchVideos,
-  videos: videos,
-  profile: profile,
-  addVideo: ({ input }: { input: AddVideoInput }) => {
-    return addVideo(input);
-  },
-};
+    searchVideos: searchVideos,
+    videos: videos,
+    profile: profile,
+    addVideo: ({input}: { input: AddVideoInput }) => {
+        return addVideo(input)
+    },
+    rateVideo: ({input}: { input: RateVideoInput }, context: Context) => {
+        return rateVideo(input, context);
+    }
+}
