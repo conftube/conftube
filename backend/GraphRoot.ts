@@ -1,6 +1,6 @@
-import {buildSchema} from "graphql";
-import {addVideo, searchVideos, AddVideoInput, videos} from "./videos";
-import {profile} from "./user";
+import { buildSchema } from "graphql";
+import { addVideo, searchVideos, AddVideoInput, videos } from "./videos";
+import { profile } from "./user";
 
 export const schema = buildSchema(`
     type User {
@@ -44,10 +44,10 @@ export const schema = buildSchema(`
 `);
 
 export const resolvers = {
-    searchVideos: searchVideos,
-    videos: videos,
-    profile: profile,
-    addVideo: ({input}: { input: AddVideoInput }) => {
-        return addVideo(input)
-    },
-}
+  searchVideos: searchVideos,
+  videos: videos,
+  profile: profile,
+  addVideo: ({ input }: { input: AddVideoInput }) => {
+    return addVideo(input);
+  },
+};
