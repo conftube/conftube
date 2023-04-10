@@ -1,6 +1,7 @@
 import "./App.css";
 import { useQuery, gql } from "@apollo/client";
-import { ChangeEvent, ReactElement, useState } from "react";
+import { ChangeEvent, ReactElement, useState, useMemo } from "react";
+import _ from "lodash";
 
 export default function App() {
   function DisplayVideo({
@@ -23,7 +24,6 @@ export default function App() {
 
     const { loading, error, data } = useQuery(GET_SEARCHVIDEO, {
       variables: GET_SEARCHVIDEO,
-      skip: filterQuery.length <= 2,
     });
 
     if (loading) return <p>Loading...</p>;
@@ -59,10 +59,15 @@ export default function App() {
         )
       : null;
   }
-  const [filterQuery, setfilterQuery] = useState("");
+  const [filterQuery, setFilterQuery] = useState<number | string | any>("");
+
+  const debouncedChangeHandler = useMemo(
+    () => _.debounce(handleChange, 300),
+    []
+  );
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
-    setfilterQuery(e.target.value);
+    setFilterQuery(e.target.value);
   }
 
   return (
@@ -73,8 +78,7 @@ export default function App() {
           <input
             type="text"
             placeholder="Search for talk"
-            onChange={handleChange}
-            value={filterQuery}
+            onChange={debouncedChangeHandler}
           />
         </div>
         <DisplayVideo filterQuery={filterQuery} />
