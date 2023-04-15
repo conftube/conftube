@@ -1,21 +1,44 @@
+use crate::auth::{create_client, OpenIDConnectConfig};
 use crate::handler::graphql_handler::{Mutation, ProjectSchema, Query};
+use actix_files::Files;
+use actix_session::storage::CookieSessionStore;
+use actix_session::SessionMiddleware;
+use actix_web::cookie::Key;
 use actix_web::web::Data;
 use actix_web::{guard, web, App, HttpResponse, HttpServer, Responder};
 use async_graphql::http::GraphiQLSource;
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
+use diesel::prelude::*;
 use diesel::r2d2;
-use diesel::{prelude::*};
 use dotenvy::dotenv;
+use openidconnect::core::CoreClient;
+use std::sync::Arc;
 
+mod auth;
+mod db_schema;
 mod handler;
 mod schemas;
-mod db_schema;
 
 type DbPool = r2d2::Pool<r2d2::ConnectionManager<PgConnection>>;
+type OidcClient = Arc<CoreClient>;
 
-async fn index(context: Data<ProjectSchema>, req: GraphQLRequest) -> GraphQLResponse {
-    context.execute(req.into_inner()).await.into()
+pub struct AppContext {
+    schema: ProjectSchema,
+    oidc_client: OidcClient,
+}
+
+impl Clone for AppContext {
+    fn clone(&self) -> Self {
+        Self {
+            oidc_client: self.oidc_client.clone(),
+            schema: self.schema.clone(),
+        }
+    }
+}
+
+async fn graphql(context: Data<AppContext>, req: GraphQLRequest) -> GraphQLResponse {
+    context.schema.execute(req.into_inner()).await.into()
 }
 
 async fn index_graphiql() -> impl Responder {
@@ -33,7 +56,22 @@ fn initialize_db_pool() -> DbPool {
 
     r2d2::Pool::builder()
         .build(manager)
-        .expect("database URL should be valid path to SQLite DB file")
+        .expect("Error building r2d2 pool")
+}
+
+async fn initialize_oidc_client() -> OidcClient {
+    Arc::new(
+        create_client(OpenIDConnectConfig {
+            issuer_url: std::env::var("OIDC_ISSUER_URL").expect("OIDC_ISSUER_URL should be set"),
+            client_id: std::env::var("OIDC_CLIENT_ID").expect("OIDC_CLIENT_ID should be set"),
+            client_secret: std::env::var("OIDC_CLIENT_SECRET")
+                .expect("OIDC_CLIENT_SECRET should be set"),
+            redirect_url: std::env::var("OIDC_REDIRECT_URL")
+                .expect("OIDC_REDIRECT_URL should be set"),
+        })
+        .await
+        .expect("Error initializing OIDC client"),
+    )
 }
 
 #[actix_web::main]
@@ -46,13 +84,31 @@ async fn main() -> std::io::Result<()> {
         .data(pool)
         .finish();
 
+    let secret_key = Key::generate();
+    let oidc_client = initialize_oidc_client().await;
+    let app_context = AppContext {
+        schema,
+        oidc_client,
+    };
+
     println!("GraphiQL IDE: http://localhost:8080");
 
     HttpServer::new(move || {
         App::new()
-            .app_data(Data::new(schema.clone()))
-            .service(web::resource("/").guard(guard::Post()).to(index))
-            .service(web::resource("/").guard(guard::Get()).to(index_graphiql))
+            .wrap(SessionMiddleware::new(
+                CookieSessionStore::default(),
+                secret_key.clone(),
+            ))
+            .app_data(Data::new(app_context.clone()))
+            .service(web::resource("/login").to(auth::login))
+            .service(web::resource("/auth_callback").to(auth::auth_callback))
+            .service(
+                web::resource("/graphql")
+                    .guard(guard::Get())
+                    .to(index_graphiql),
+            )
+            .service(web::resource("/").guard(guard::Post()).to(graphql))
+            .service(Files::new("/", "public").index_file("index.html"))
     })
     .bind("0.0.0.0:8080")?
     .run()
