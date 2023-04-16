@@ -1,5 +1,6 @@
+use async_graphql::{InputObject, SimpleObject};
+use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use async_graphql::SimpleObject;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject, Queryable)]
@@ -11,21 +12,30 @@ pub struct User {
     pub picture: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject, Queryable)]
 pub struct Video {
     pub id: String,
     pub platform: String,
     pub title: String,
     pub description: String,
+    pub published_at: NaiveDateTime,
     pub thumbnail_url: String,
-    pub published_at: String,
-    pub rating: f32,
+    pub rating: Option<f64>,
+}
+
+#[derive(InputObject)]
+pub struct PaginatedVideosFilter {
+    pub id: Option<String>,
+    #[graphql(default = 25)]
+    pub first: i64,
+    #[graphql(default = 0)]
+    pub offset: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct PaginatedVideos {
-    pub first: usize,
-    pub offset: usize,
-    pub total: usize,
+    pub first: i64,
+    pub offset: i64,
+    pub total: i64,
     pub results: Vec<Video>,
 }

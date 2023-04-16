@@ -100,8 +100,6 @@ pub async fn auth_callback(
         Some(csrf_token) => csrf_token,
     };
 
-    // TODO: compare state + csrf_token
-
     if info.state != *stored_csrf_token.secret() {
         return HttpResponse::NotFound().finish();
     }
@@ -131,6 +129,17 @@ pub async fn auth_callback(
             return HttpResponse::Forbidden().finish();
         }
     }
+
+    // TODO: insert the user into the database!
+    // TODO: implement middleware to check, if the session is still valid!
+
+    // TODO: validate token
+    token_response.access_token();
+
+    session.clear();
+    session
+        .insert("token", token_response)
+        .expect("Error storing token");
 
     HttpResponse::Found()
         .append_header(("Location", "/"))

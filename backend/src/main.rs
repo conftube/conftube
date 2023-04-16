@@ -1,5 +1,6 @@
 use crate::auth::{create_client, OpenIDConnectConfig};
 use crate::handler::graphql_handler::{Mutation, ProjectSchema, Query};
+use crate::youtube::{Youtube, YoutubeClient};
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
@@ -19,6 +20,7 @@ mod auth;
 mod db_schema;
 mod handler;
 mod schemas;
+mod youtube;
 
 type DbPool = r2d2::Pool<r2d2::ConnectionManager<PgConnection>>;
 type OidcClient = Arc<CoreClient>;
@@ -26,11 +28,13 @@ type OidcClient = Arc<CoreClient>;
 pub struct AppContext {
     schema: ProjectSchema,
     oidc_client: OidcClient,
+    youtube_client: Youtube,
 }
 
 impl Clone for AppContext {
     fn clone(&self) -> Self {
         Self {
+            youtube_client: self.youtube_client.clone(),
             oidc_client: self.oidc_client.clone(),
             schema: self.schema.clone(),
         }
@@ -62,16 +66,22 @@ fn initialize_db_pool() -> DbPool {
 async fn initialize_oidc_client() -> OidcClient {
     Arc::new(
         create_client(OpenIDConnectConfig {
-            issuer_url: std::env::var("OIDC_ISSUER_URL").expect("OIDC_ISSUER_URL should be set"),
-            client_id: std::env::var("OIDC_CLIENT_ID").expect("OIDC_CLIENT_ID should be set"),
+            issuer_url: std::env::var("OIDC_ISSUER_URL").expect("OIDC_ISSUER_URL needs to be set"),
+            client_id: std::env::var("OIDC_CLIENT_ID").expect("OIDC_CLIENT_ID needs to be set"),
             client_secret: std::env::var("OIDC_CLIENT_SECRET")
-                .expect("OIDC_CLIENT_SECRET should be set"),
+                .expect("OIDC_CLIENT_SECRET needs to be set"),
             redirect_url: std::env::var("OIDC_REDIRECT_URL")
-                .expect("OIDC_REDIRECT_URL should be set"),
+                .expect("OIDC_REDIRECT_URL needs to be set"),
         })
         .await
         .expect("Error initializing OIDC client"),
     )
+}
+
+async fn initialize_youtube() -> Youtube {
+    Arc::new(YoutubeClient::new(
+        std::env::var("YOUTUBE_API_KEY").expect("YOUTUBE_API_KEY needs to be set"),
+    ))
 }
 
 #[actix_web::main]
@@ -80,15 +90,20 @@ async fn main() -> std::io::Result<()> {
 
     // initialize outside of `HttpServer::new` so that it is shared across all workers
     let pool = initialize_db_pool();
-    let schema = Schema::build(Query, Mutation, EmptySubscription)
-        .data(pool)
-        .finish();
 
     let secret_key = Key::generate();
     let oidc_client = initialize_oidc_client().await;
+    let youtube_client = initialize_youtube().await;
+
+    let schema = Schema::build(Query, Mutation, EmptySubscription)
+        .data(pool)
+        .data(youtube_client.clone())
+        .finish();
+
     let app_context = AppContext {
         schema,
         oidc_client,
+        youtube_client,
     };
 
     println!("GraphiQL IDE: http://localhost:8080");

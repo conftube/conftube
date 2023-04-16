@@ -13,6 +13,9 @@ async-graphql-actix-web = "5.0.7"
 serde = { version = "1.0.160", features = ["derive"] }
 dotenvy = "0.15.7"
 futures = "0.3"
-diesel = { version = "2", features = ["postgres", "r2d2"] }
+diesel = { version = "2", features = ["postgres", "r2d2", "chrono"] }
 openidconnect = "2.5.1"
 actix-session = { version = "0.7.2", features = ["cookie-session"] }
+chrono = { version = "0.4.24", features = ["serde"] }
+hyper-rustls = { version = "0.24.0", features = ["http2"] }
+google-youtube3 = { version = "5.0.2" }
