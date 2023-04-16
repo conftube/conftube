@@ -62,7 +62,7 @@ impl YoutubeClient {
                         platform: "youtube".to_string(),
                         title: snippet.title.unwrap(),
                         description: snippet.description.unwrap(),
-                        published_at: snippet.published_at.unwrap().naive_utc(),
+                        published_at: snippet.published_at.unwrap(),
                         thumbnail_url: snippet.thumbnails.unwrap().medium.unwrap().url.unwrap(),
                         rating: None,
                     }

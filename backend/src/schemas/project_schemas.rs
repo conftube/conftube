@@ -1,5 +1,5 @@
 use async_graphql::{InputObject, SimpleObject};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +18,7 @@ pub struct Video {
     pub platform: String,
     pub title: String,
     pub description: String,
-    pub published_at: NaiveDateTime,
+    pub published_at: DateTime<Utc>,
     pub thumbnail_url: String,
     pub rating: Option<f64>,
 }

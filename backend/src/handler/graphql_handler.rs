@@ -1,10 +1,11 @@
 use crate::db_schema::videos::dsl::videos;
+use crate::db_schema::videos::{description, title};
 use crate::schemas::project_schemas::{PaginatedVideos, PaginatedVideosFilter, User, Video};
 use crate::youtube::{Youtube, YoutubeError};
 use crate::DbPool;
 use actix_web::error;
 use async_graphql::{Context, EmptySubscription, ErrorExtensions, FieldResult, Object, Schema};
-use chrono::NaiveDateTime;
+use chrono::Utc;
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use std::fmt::{Display, Formatter};
@@ -44,18 +45,36 @@ impl Query {
         query: String,
         #[graphql(default = 20)] max_results: u32,
     ) -> FieldResult<Vec<Video>> {
-        let _conn: &mut PgConnection = &mut ctx
+        let conn: &mut PgConnection = &mut ctx
             .data_unchecked::<DbPool>()
             .get()
             .expect("Couldn't get db connection from pool");
 
+        let mut results: Vec<Video> = videos
+            .filter(
+                title
+                    .ilike(format!("%{}%", query.clone()))
+                    .or(description.ilike(format!("%{}%", query.clone()))),
+            )
+            .limit(max_results as i64)
+            .load::<Video>(conn)
+            .map_err(|e| e.extend_with(|_, e| e.set("code", 500)))?;
+
+        if results.len() == max_results as usize {
+            return Ok(results);
+        }
+
         let youtube: &Youtube = ctx.data_unchecked::<Youtube>();
-        let youtube_results = youtube
+        let mut youtube_results = youtube
             .query(query, 20)
             .await
-            .map_err(|e| e.extend_with(|_, e| e.set("message", 500)))?;
+            .map_err(|e| e.extend_with(|_, e| e.set("code", 500)))?;
 
-        Ok(youtube_results)
+        let b = &mut youtube_results;
+        results.append(b);
+        results.truncate(max_results as usize);
+
+        Ok(results)
     }
 
     async fn videos(
@@ -93,7 +112,7 @@ impl Mutation {
             title: "".to_string(),
             description: "".to_string(),
             thumbnail_url: "".to_string(),
-            published_at: NaiveDateTime::default(),
+            published_at: Utc::now(),
             rating: Some(0.0),
         })
     }
