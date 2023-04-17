@@ -5,7 +5,7 @@ ARG RUST_IMAGE=rust:1.68-alpine
 FROM $RUST_IMAGE AS backend
 WORKDIR /app
 COPY backend/ .
-RUN apk add libc-dev && rustup component add clippy \
+RUN apk add libc-dev libpq && rustup component add clippy \
     && cargo clippy --no-deps \
     && cargo check \
     && cargo build -r
