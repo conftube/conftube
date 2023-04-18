@@ -44,11 +44,9 @@ pub async fn login(context: Data<AppContext>, session: Session) -> impl Responde
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        // Set the desired scopes.
         .add_scope(Scope::new("read".to_string()))
         .add_scope(Scope::new("write".to_string()))
-        // Set the PKCE code challenge.
-        .set_pkce_challenge(pkce_challenge.clone())
+        .set_pkce_challenge(pkce_challenge)
         .url();
 
     session

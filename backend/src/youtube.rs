@@ -9,7 +9,7 @@ pub type Youtube = Arc<YoutubeClient>;
 
 #[derive(Debug)]
 pub enum YoutubeError {
-    UNKNOWN(Error),
+    Unknown(Error),
 }
 
 pub struct YoutubeClient {
@@ -45,7 +45,7 @@ impl YoutubeClient {
             .param("key", self.key.as_str())
             .doit()
             .await
-            .map_err(YoutubeError::UNKNOWN)?
+            .map_err(YoutubeError::Unknown)?
             .1
             .items;
 

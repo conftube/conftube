@@ -87,17 +87,7 @@ impl Query {
             .get()
             .expect("Couldn't get db connection from pool");
 
-        let loaded_videos = videos
-            .offset(filter.offset)
-            .limit(filter.first)
-            .load::<Video>(conn)?;
-
-        Ok(PaginatedVideos {
-            first: filter.first,
-            offset: filter.offset,
-            total: 0,
-            results: loaded_videos,
-        })
+        Video::paginated(filter, conn).map_err(|e| e.extend_with(|_, e| e.set("code", 500)))
     }
 }
 

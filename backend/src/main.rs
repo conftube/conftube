@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate log;
 use crate::auth::{create_client, OpenIDConnectConfig};
 use crate::handler::graphql_handler::{Mutation, ProjectSchema, Query};
 use crate::youtube::{Youtube, YoutubeClient};
@@ -87,6 +89,7 @@ async fn initialize_youtube() -> Youtube {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+    env_logger::init();
 
     // initialize outside of `HttpServer::new` so that it is shared across all workers
     let pool = initialize_db_pool();
@@ -106,7 +109,7 @@ async fn main() -> std::io::Result<()> {
         youtube_client,
     };
 
-    println!("GraphiQL IDE: http://localhost:8080");
+    info!("GraphiQL IDE: http://localhost:8080/graphql");
 
     HttpServer::new(move || {
         App::new()
