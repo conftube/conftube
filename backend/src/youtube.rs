@@ -10,6 +10,7 @@ pub type Youtube = Arc<YoutubeClient>;
 #[derive(Debug)]
 pub enum YoutubeError {
     Unknown(Error),
+    NotFound,
 }
 
 pub struct YoutubeClient {
@@ -59,7 +60,7 @@ impl YoutubeClient {
 
                     Video {
                         id: e.id.unwrap().video_id.unwrap(),
-                        platform: "youtube".to_string(),
+                        platform: "youtube".into(),
                         title: snippet.title.unwrap(),
                         description: snippet.description.unwrap(),
                         published_at: snippet.published_at.unwrap(),
@@ -68,6 +69,38 @@ impl YoutubeClient {
                     }
                 })
                 .collect()),
+        }
+    }
+
+    pub async fn find_by_id(&self, id: String) -> Result<Video, YoutubeError> {
+        let results = self
+            .hub
+            .videos()
+            .list(&vec!["id".into(), "snippet".into()])
+            .add_id(id.as_str())
+            .param("key", self.key.as_str())
+            .doit()
+            .await
+            .map_err(YoutubeError::Unknown)?
+            .1
+            .items;
+
+        match results {
+            None => Err(YoutubeError::NotFound),
+            Some(e) => {
+                let video = e.first().unwrap();
+                let snippet = video.snippet.clone().unwrap();
+
+                Ok(Video {
+                    id: video.id.clone().unwrap(),
+                    platform: "youtube".into(),
+                    title: snippet.title.unwrap(),
+                    description: snippet.description.unwrap(),
+                    published_at: snippet.published_at.unwrap(),
+                    thumbnail_url: snippet.thumbnails.unwrap().medium.unwrap().url.unwrap(),
+                    rating: None,
+                })
+            }
         }
     }
 }

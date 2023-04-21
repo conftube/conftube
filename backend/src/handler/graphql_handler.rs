@@ -1,13 +1,16 @@
 use crate::db_schema::videos::dsl::videos;
 use crate::db_schema::videos::{description, title};
-use crate::schemas::project_schemas::{PaginatedVideos, PaginatedVideosFilter, User, Video};
+use crate::schemas::project_schemas::{
+    AddVideoInput, PaginatedVideos, PaginatedVideosFilter, User, Video,
+};
 use crate::youtube::{Youtube, YoutubeError};
 use crate::DbPool;
 use actix_web::error;
-use async_graphql::{Context, EmptySubscription, ErrorExtensions, FieldResult, Object, Schema};
-use chrono::Utc;
+use async_graphql::{
+    Context, EmptySubscription, Error, ErrorExtensions, FieldResult, Object, Schema,
+};
 use diesel::prelude::*;
-use diesel::QueryDsl;
+use diesel::{insert_into, QueryDsl};
 use std::fmt::{Display, Formatter};
 
 pub struct Query;
@@ -95,16 +98,27 @@ pub struct Mutation;
 
 #[Object]
 impl Mutation {
-    async fn rate_video(&self, _ctx: &Context<'_>) -> FieldResult<Video> {
-        Ok(Video {
-            id: "".to_string(),
-            platform: "".to_string(),
-            title: "".to_string(),
-            description: "".to_string(),
-            thumbnail_url: "".to_string(),
-            published_at: Utc::now(),
-            rating: Some(0.0),
-        })
+    async fn add_video(&self, ctx: &Context<'_>, input: AddVideoInput) -> FieldResult<Video> {
+        let video = match input.platform.as_str() {
+            "youtube" => {
+                let youtube: &Youtube = ctx.data_unchecked::<Youtube>();
+
+                youtube
+                    .find_by_id(input.id)
+                    .await
+                    .map_err(|e| e.extend_with(|_, e| e.set("code", 500)))
+            }
+            _ => Err(Error::new("Platform not found")),
+        }?;
+
+        let conn: &mut PgConnection = &mut ctx
+            .data_unchecked::<DbPool>()
+            .get()
+            .expect("Couldn't get db connection from pool");
+
+        insert_into(videos).values(&video).execute(conn)?;
+
+        Ok(video)
     }
 }
 

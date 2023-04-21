@@ -1,3 +1,4 @@
+use crate::db_schema::videos;
 use async_graphql::{InputObject, SimpleObject};
 use chrono::{DateTime, Utc};
 use diesel::dsl::count;
@@ -14,7 +15,8 @@ pub struct User {
     pub picture: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject, Queryable)]
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject, Queryable, Insertable)]
+#[diesel(table_name = videos)]
 pub struct Video {
     pub id: String,
     pub platform: String,
@@ -77,4 +79,10 @@ pub struct PaginatedVideos {
     pub offset: i64,
     pub total: i64,
     pub results: Vec<Video>,
+}
+
+#[derive(InputObject)]
+pub struct AddVideoInput {
+    pub id: String,
+    pub platform: String,
 }
