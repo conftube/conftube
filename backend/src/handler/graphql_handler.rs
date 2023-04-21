@@ -1,7 +1,8 @@
+use crate::db_schema::users::id;
 use crate::db_schema::videos::dsl::videos;
 use crate::db_schema::videos::{description, title};
 use crate::schemas::project_schemas::{
-    AddVideoInput, PaginatedVideos, PaginatedVideosFilter, User, Video,
+    AddVideoInput, PaginatedVideos, PaginatedVideosFilter, RateVideoInput, User, Video,
 };
 use crate::youtube::{Youtube, YoutubeError};
 use crate::DbPool;
@@ -116,9 +117,32 @@ impl Mutation {
             .get()
             .expect("Couldn't get db connection from pool");
 
-        insert_into(videos).values(&video).execute(conn)?;
+        insert_into(videos)
+            .values(&video)
+            .on_conflict_do_nothing()
+            .execute(conn)?;
 
         Ok(video)
+    }
+
+    async fn rate_video(&self, ctx: &Context<'_>, input: RateVideoInput) -> FieldResult<Video> {
+        use crate::db_schema::*;
+
+        let conn: &mut PgConnection = &mut ctx
+            .data_unchecked::<DbPool>()
+            .get()
+            .expect("Couldn't get db connection from pool");
+
+        // TODO: should be set by the middleware already
+        let user = users::table.filter(id.eq(1)).first::<User>(conn)?;
+
+        let video = videos::table
+            .filter(videos::id.eq(input.id))
+            .first::<Video>(conn)?;
+
+        let rated_video = video.rate(user, input.rating, conn)?;
+
+        Ok(rated_video)
     }
 }
 
