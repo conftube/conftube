@@ -1,11 +1,12 @@
 #[macro_use]
 extern crate log;
-use crate::auth::{create_client, OpenIDConnectConfig};
+
+use crate::auth::{create_client, OpenIDConnectConfig, UserInfo};
 use crate::handler::graphql_handler::{Mutation, ProjectSchema, Query};
 use crate::youtube::{Youtube, YoutubeClient};
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
-use actix_session::SessionMiddleware;
+use actix_session::{Session, SessionMiddleware};
 use actix_web::cookie::Key;
 use actix_web::web::Data;
 use actix_web::{guard, web, App, HttpResponse, HttpServer, Responder};
@@ -45,8 +46,21 @@ impl Clone for AppContext {
     }
 }
 
-async fn graphql(context: Data<AppContext>, req: GraphQLRequest) -> GraphQLResponse {
-    context.schema.execute(req.into_inner()).await.into()
+async fn graphql(
+    context: Data<AppContext>,
+    session: Session,
+    req: GraphQLRequest,
+) -> GraphQLResponse {
+    let mut request = req.into_inner();
+
+    let user = session
+        .get::<UserInfo>("user_info")
+        .expect("Could not fetch user info - not logged in?")
+        .unwrap();
+
+    request = request.data(user);
+
+    context.schema.execute(request).await.into()
 }
 
 async fn index_graphiql() -> impl Responder {

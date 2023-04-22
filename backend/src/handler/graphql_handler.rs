@@ -1,3 +1,4 @@
+use crate::auth::UserInfo;
 use crate::db_schema::users::id;
 use crate::db_schema::videos::dsl::videos;
 use crate::db_schema::videos::{description, title};
@@ -29,20 +30,19 @@ impl Query {
     async fn profile(&self, ctx: &Context<'_>) -> FieldResult<User> {
         use crate::db_schema::*;
 
+        let user_info = ctx.data_unchecked::<UserInfo>();
         let conn: &mut PgConnection = &mut ctx
             .data_unchecked::<DbPool>()
             .get()
             .expect("couldn't get db connection from pool");
 
-        // TODO: remove hardcoded user id, use session value instead!
-        let user_id = 1;
+        let user_id = user_info.user.id;
         let user = users::table
             .filter(id.eq(user_id))
             .limit(1)
-            .get_result::<User>(conn)
-            .expect("Error loading user");
+            .get_result::<User>(conn)?;
 
-        Ok(user.clone())
+        Ok(user)
     }
 
     async fn search_videos(
@@ -135,8 +135,7 @@ impl Mutation {
             .get()
             .expect("Couldn't get db connection from pool");
 
-        // TODO: should be set by the middleware already
-        let user = users::table.filter(id.eq(1)).first::<User>(conn)?;
+        let user = &ctx.data_unchecked::<UserInfo>().user;
 
         let video = videos::table
             .filter(videos::id.eq(input.id))

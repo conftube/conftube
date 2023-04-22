@@ -138,7 +138,7 @@ impl Video {
         })
     }
 
-    pub fn rate(&self, by_user: User, x: f64, conn: &mut PgConnection) -> Result<Video, Error> {
+    pub fn rate(&self, by_user: &User, x: f64, conn: &mut PgConnection) -> Result<Video, Error> {
         use crate::db_schema::*;
 
         let new_rating = Rating {

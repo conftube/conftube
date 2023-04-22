@@ -91,8 +91,9 @@ pub struct AuthCallback {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserInfo {
-    claims: IdTokenClaims<EmptyAdditionalClaims, CoreGenderClaim>,
-    token: CoreTokenResponse,
+    pub claims: IdTokenClaims<EmptyAdditionalClaims, CoreGenderClaim>,
+    pub token: CoreTokenResponse,
+    pub user: User,
 }
 
 pub async fn auth_callback(
@@ -142,17 +143,7 @@ pub async fn auth_callback(
         }
     }
 
-    session
-        .insert(
-            "user_info",
-            UserInfo {
-                claims: claims.clone(),
-                token: token.clone(),
-            },
-        )
-        .map_err(AuthCallbackError::SessionInsert)?;
-
-    let user = NewUser {
+    let new_user = NewUser {
         id: None,
         email: claims.email().unwrap().to_string(),
         given_name: claims.given_name().unwrap().get(None).unwrap().to_string(),
@@ -161,12 +152,24 @@ pub async fn auth_callback(
     };
 
     let mut conn = context.db_pool.get().unwrap();
+    let user = new_user
+        .register(&mut conn)
+        .expect("Error registering user");
 
-    user.register(&mut conn).expect("Error registering user");
+    session
+        .insert(
+            "user_info",
+            UserInfo {
+                claims: claims.clone(),
+                token: token.clone(),
+                user,
+            },
+        )
+        .map_err(AuthCallbackError::SessionInsert)?;
 
     // TODO: implement middleware to check if the session is still valid!
-    // TODO: validate token
-    // TODO: add auth to all routes except login
+    // TODO: set session TTL
+    // TODO: add auth to all routes except login & callback
 
     Ok(HttpResponse::Found()
         .append_header((header::LOCATION, "/"))
@@ -231,7 +234,7 @@ impl Error for AuthCallbackError {
         match self {
             AuthCallbackError::MissingState => None,
             AuthCallbackError::InvalidState => None,
-            AuthCallbackError::FailedRequestToken(err) => Some(&*err),
+            AuthCallbackError::FailedRequestToken(err) => Some(err),
             AuthCallbackError::SessionInsert(err) => Some(err),
             AuthCallbackError::MissingIdToken => None,
             AuthCallbackError::CreateAccessTokenHash(err) => Some(err),
