@@ -8,14 +8,54 @@ use diesel::result::Error;
 use serde::{Deserialize, Serialize};
 
 #[derive(
-    Debug, Clone, Serialize, Deserialize, SimpleObject, Queryable, Identifiable, Selectable,
+    Debug,
+    Clone,
+    AsChangeset,
+    Serialize,
+    Deserialize,
+    SimpleObject,
+    Queryable,
+    Selectable,
+    Insertable,
+)]
+#[diesel(table_name = users)]
+pub struct NewUser {
+    pub id: Option<i32>,
+    pub email: String,
+    pub family_name: String,
+    pub given_name: String,
+    pub picture: String,
+}
+
+impl NewUser {
+    pub fn register(&self, conn: &mut PgConnection) -> Result<User, Error> {
+        use crate::db_schema::*;
+
+        self.insert_into(users::table)
+            .on_conflict(users::email)
+            .do_update()
+            .set(self)
+            .get_result::<User>(conn)
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    SimpleObject,
+    Queryable,
+    Identifiable,
+    Selectable,
+    Insertable,
 )]
 #[diesel(table_name = users)]
 pub struct User {
     pub id: i32,
     pub email: String,
-    pub given_name: String,
     pub family_name: String,
+    pub given_name: String,
     pub picture: String,
 }
 

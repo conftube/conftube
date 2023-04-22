@@ -28,6 +28,7 @@ type DbPool = r2d2::Pool<r2d2::ConnectionManager<PgConnection>>;
 type OidcClient = Arc<CoreClient>;
 
 pub struct AppContext {
+    db_pool: DbPool,
     schema: ProjectSchema,
     oidc_client: OidcClient,
     youtube_client: Youtube,
@@ -36,6 +37,7 @@ pub struct AppContext {
 impl Clone for AppContext {
     fn clone(&self) -> Self {
         Self {
+            db_pool: self.db_pool.clone(),
             youtube_client: self.youtube_client.clone(),
             oidc_client: self.oidc_client.clone(),
             schema: self.schema.clone(),
@@ -92,18 +94,19 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     // initialize outside of `HttpServer::new` so that it is shared across all workers
-    let pool = initialize_db_pool();
+    let db_pool = initialize_db_pool();
 
     let secret_key = Key::generate();
     let oidc_client = initialize_oidc_client().await;
     let youtube_client = initialize_youtube().await;
 
     let schema = Schema::build(Query, Mutation, EmptySubscription)
-        .data(pool)
+        .data(db_pool.clone())
         .data(youtube_client.clone())
         .finish();
 
     let app_context = AppContext {
+        db_pool,
         schema,
         oidc_client,
         youtube_client,

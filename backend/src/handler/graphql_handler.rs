@@ -27,20 +27,22 @@ impl error::ResponseError for YoutubeError {}
 #[Object]
 impl Query {
     async fn profile(&self, ctx: &Context<'_>) -> FieldResult<User> {
-        use crate::db_schema::users::dsl::*;
+        use crate::db_schema::*;
+
         let conn: &mut PgConnection = &mut ctx
             .data_unchecked::<DbPool>()
             .get()
             .expect("couldn't get db connection from pool");
 
+        // TODO: remove hardcoded user id, use session value instead!
         let user_id = 1;
-        let user = users
+        let user = users::table
             .filter(id.eq(user_id))
             .limit(1)
-            .load::<User>(conn)
+            .get_result::<User>(conn)
             .expect("Error loading user");
 
-        Ok(user[0].clone())
+        Ok(user.clone())
     }
 
     async fn search_videos(
