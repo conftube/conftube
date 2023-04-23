@@ -701,6 +701,7 @@ dependencies = [
  "dotenvy",
  "env_logger",
  "futures",
+ "futures-util",
  "google-youtube3",
  "hyper-rustls 0.24.0",
  "log",

@@ -1,12 +1,13 @@
 #[macro_use]
 extern crate log;
 
-use crate::auth::{create_client, OpenIDConnectConfig, UserInfo};
-use crate::handler::graphql_handler::{Mutation, ProjectSchema, Query};
-use crate::youtube::{Youtube, YoutubeClient};
+use std::sync::Arc;
+
 use actix_files::Files;
+use actix_session::config::PersistentSession;
 use actix_session::storage::CookieSessionStore;
 use actix_session::{Session, SessionMiddleware};
+use actix_web::cookie::time::Duration;
 use actix_web::cookie::Key;
 use actix_web::web::Data;
 use actix_web::{guard, web, App, HttpResponse, HttpServer, Responder};
@@ -17,9 +18,14 @@ use diesel::prelude::*;
 use diesel::r2d2;
 use dotenvy::dotenv;
 use openidconnect::core::CoreClient;
-use std::sync::Arc;
+
+use crate::auth::{create_client, OpenIDConnectConfig, UserInfo};
+use crate::auth_middleware::AuthRequired;
+use crate::handler::graphql_handler::{Mutation, ProjectSchema, Query};
+use crate::youtube::{Youtube, YoutubeClient};
 
 mod auth;
+mod auth_middleware;
 mod db_schema;
 mod handler;
 mod schemas;
@@ -110,7 +116,12 @@ async fn main() -> std::io::Result<()> {
     // initialize outside of `HttpServer::new` so that it is shared across all workers
     let db_pool = initialize_db_pool();
 
-    let secret_key = Key::generate();
+    let secret_key = Key::from(
+        std::env::var("SECRET_KEY")
+            .expect("OIDC_CLIENT_SECRET needs to be set")
+            .as_bytes(),
+    );
+
     let oidc_client = initialize_oidc_client().await;
     let youtube_client = initialize_youtube().await;
 
@@ -130,19 +141,28 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(SessionMiddleware::new(
-                CookieSessionStore::default(),
-                secret_key.clone(),
-            ))
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
+                    .session_lifecycle(
+                        PersistentSession::default().session_ttl(Duration::seconds(10)),
+                    )
+                    .build(),
+            )
             .app_data(Data::new(app_context.clone()))
             .service(web::resource("/login").to(auth::login))
             .service(web::resource("/auth_callback").to(auth::auth_callback))
             .service(
                 web::resource("/graphql")
                     .guard(guard::Get())
+                    .wrap(AuthRequired)
                     .to(index_graphiql),
             )
-            .service(web::resource("/").guard(guard::Post()).to(graphql))
+            .service(
+                web::resource("/")
+                    .guard(guard::Post())
+                    .wrap(AuthRequired)
+                    .to(graphql),
+            )
             .service(Files::new("/", "public").index_file("index.html"))
     })
     .bind("0.0.0.0:8080")?

@@ -167,10 +167,6 @@ pub async fn auth_callback(
         )
         .map_err(AuthCallbackError::SessionInsert)?;
 
-    // TODO: implement middleware to check if the session is still valid!
-    // TODO: set session TTL
-    // TODO: add auth to all routes except login & callback
-
     Ok(HttpResponse::Found()
         .append_header((header::LOCATION, "/"))
         .finish())
