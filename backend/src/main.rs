@@ -143,9 +143,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
-                    .session_lifecycle(
-                        PersistentSession::default().session_ttl(Duration::seconds(10)),
-                    )
+                    .session_lifecycle(PersistentSession::default().session_ttl(Duration::days(1)))
                     .build(),
             )
             .app_data(Data::new(app_context.clone()))
