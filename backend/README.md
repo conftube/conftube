@@ -12,13 +12,13 @@ cargo install diesel_cli --no-default-features --features postgres
 cargo install cargo-watch
 ```
 
-Copy `.env.dist` to `.env` and fill in the missing details. Then run database migrations & start the development server:
+Copy `.env.dist` and rename it to `.env` and fill in the missing details. After that, start the development server:
 
 ```sh
-diesel migration run && cargo watch -x run
+cargo watch -x run
 ```
 
-This will compile the code, start the development server as well as watch & recompile for changes.
+This will compile the code, run migrations, start the development server as well as watch & recompile for changes.
 
 ## Database changes
 

@@ -19,6 +19,8 @@ use diesel::r2d2;
 use dotenvy::dotenv;
 use openidconnect::core::CoreClient;
 
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+
 use crate::auth::{create_client, OpenIDConnectConfig, UserInfo};
 use crate::auth_middleware::AuthRequired;
 use crate::handler::graphql_handler::{Mutation, ProjectSchema, Query};
@@ -33,6 +35,8 @@ mod youtube;
 
 type DbPool = r2d2::Pool<r2d2::ConnectionManager<PgConnection>>;
 type OidcClient = Arc<CoreClient>;
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 pub struct AppContext {
     db_pool: DbPool,
@@ -115,6 +119,11 @@ async fn main() -> std::io::Result<()> {
 
     // initialize outside of `HttpServer::new` so that it is shared across all workers
     let db_pool = initialize_db_pool();
+    db_pool
+        .get()
+        .unwrap()
+        .run_pending_migrations(MIGRATIONS)
+        .expect("Error running pending migrations");
 
     let secret_key = Key::from(
         std::env::var("SECRET_KEY")
@@ -156,7 +165,7 @@ async fn main() -> std::io::Result<()> {
                     .to(index_graphiql),
             )
             .service(
-                web::resource("/")
+                web::resource("/graphql")
                     .guard(guard::Post())
                     .wrap(AuthRequired)
                     .to(graphql),
