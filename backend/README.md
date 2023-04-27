@@ -1,23 +1,30 @@
 # conftube backend
 
-The backend of conftube is built with express, express-graphql and prisma on top of a PostgreSQL database.
+The backend of conftube is built with Rust, actix-web, async-graphql and diesel on top of a PostgreSQL database.
 
 ## Development
 
-Start the development server:
+Install required tools:
 
-```sh
-npm run dev
+```shell
+# see https://diesel.rs/guides/getting-started for details
+cargo install diesel_cli --no-default-features --features postgres
+cargo install cargo-watch
 ```
 
-This will compile the code, start the development and watch & recompile for changes.
+Copy `.env.dist` and rename it to `.env` and fill in the missing details. After that, start the development server:
+
+```sh
+cargo watch -x run
+```
+
+This will compile the code, run migrations, start the development server as well as watch & recompile for changes.
 
 ## Database changes
 
-`conftube` uses Prisma under the hood, so changes in the schema need to have a migration generated from the existing
-schema as well as code generation is required. Run the following after changing `prisma/schema.prisma`:
+`conftube` uses [diesel](https://diesel.rs) under the hood, so changes in the schema are being run through migrations.
+Run the following to generate a new migration:
 
 ```shell
-npx prisma migrate dev --name <a-descriptive-name-for-the-change>
-npx prisma generate
+diesel migration create <name>
 ```

@@ -4,5 +4,6 @@ services:
     image: postgres
     environment:
       POSTGRES_PASSWORD: conftube
+      POSTGRES_DB: conftube
     ports:
       - "5432:5432"
